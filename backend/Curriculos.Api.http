@@ -1,0 +1,31 @@
+@api = http://localhost:5080
+
+### Listar candidatos
+GET {{api}}/api/candidates
+
+### Cadastrar candidato válido
+POST {{api}}/api/candidates
+Content-Type: application/json
+
+{
+  "fullName": "Mariana Exemplo Souza",
+  "email": "mariana.souza@example.com",
+  "phone": "(41) 98765-4321",
+  "desiredPosition": "Desenvolvedora de Sistemas",
+  "professionalSummary": "Experiência com .NET, React e SQL Server."
+}
+
+### Cadastro inválido (nome ausente, e-mail sem domínio) -> 400
+POST {{api}}/api/candidates
+Content-Type: application/json
+
+{
+  "fullName": "   ",
+  "email": "mariana@exemplo"
+}
+
+### Detalhes
+GET {{api}}/api/candidates/1
+
+### Candidato inexistente -> 404
+GET {{api}}/api/candidates/999999
