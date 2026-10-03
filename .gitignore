@@ -1,0 +1,20 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+TestResults/
+
+# Node
+node_modules/
+dist/
+
+# Ambiente local
+.env
+
+# IDEs / SO
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
