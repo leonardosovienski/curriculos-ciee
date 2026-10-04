@@ -51,7 +51,7 @@ public class CandidatesController(AppDbContext db) : ControllerBase
         var candidate = await db.Candidates.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id);
 
         return candidate is null
-            ? Problem(title: "Candidato não encontrado.", detail: "Candidato não encontrado.", statusCode: StatusCodes.Status404NotFound)
+            ? Problem(title: "Não encontrado", detail: "Candidato não encontrado.", statusCode: StatusCodes.Status404NotFound)
             : CandidateResponse.From(candidate);
     }
 
