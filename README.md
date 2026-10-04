@@ -2,8 +2,12 @@
 
 Aplicação para cadastro de candidatos, desenvolvida para o desafio técnico de Desenvolvedor de Sistemas do CIEE/PR.
 
-> **Status:** M1 concluído — cadastro manual, listagem e detalhes funcionando ponta a ponta.
-> O cadastro com importação de PDF (M2) ainda está em desenvolvimento.
+O cadastro pode ser feito de duas formas, sempre pelo **mesmo formulário** e com as **mesmas validações**:
+
+- **Manual:** a pessoa preenche o formulário e salva.
+- **Com PDF (opcional):** a pessoa envia um currículo em PDF, a API extrai o texto e tenta identificar nome, e-mail e telefone; os dados encontrados preenchem o formulário, que continua editável antes de salvar.
+
+Depois de salvo, o candidato aparece na listagem e tem uma tela de detalhes. Falhas na leitura do PDF nunca impedem o cadastro manual.
 
 ## Stack e versões
 
@@ -13,6 +17,7 @@ Aplicação para cadastro de candidatos, desenvolvida para o desafio técnico de
 | Rotas | React Router | 8.4 |
 | Backend | ASP.NET Core Web API (Controllers) | .NET 10 (LTS) |
 | Persistência | Entity Framework Core + provider SQL Server | 10.0.12 |
+| Leitura de PDF | PdfPig (Apache 2.0) | 0.1.16 |
 | Banco | SQL Server em Docker | 2022 (`mcr.microsoft.com/mssql/server:2022-latest`) |
 | Testes | xUnit + WebApplicationFactory | xUnit 2.9.3 |
 
@@ -25,7 +30,11 @@ React + Vite (localhost:5173)
    │  fetch("/api/...")  → proxy do Vite
    ▼
 ASP.NET Core Web API (localhost:5080)
-   └── CandidatesController ──► AppDbContext (EF Core)
+   ├── CandidatesController ──► AppDbContext (EF Core)
+   └── ResumesController
+         ├── PdfFileValidator   (tamanho, extensão, assinatura %PDF-)
+         ├── PdfTextExtractor   (PdfPig, todas as páginas)
+         └── ResumeTextParser   (heurísticas para nome, e-mail e telefone)
                                       │
                                       ▼
                      SQL Server 2022 em Docker (localhost:14330)
@@ -134,6 +143,7 @@ O `dotnet-ef` fica fixado no manifest local `dotnet-tools.json`; não é preciso
 | `POST` | `/api/candidates` | Cadastra um candidato | `201` criado, `400` validação |
 | `GET` | `/api/candidates` | Lista candidatos (mais recentes primeiro) | `200` |
 | `GET` | `/api/candidates/{id}` | Detalhes de um candidato | `200`, `404` |
+| `POST` | `/api/resumes/parse` | Lê um PDF (`multipart/form-data`, campo `file`) e devolve `{ fullName, email, phone }`. **Não grava nada.** | `200`, `400`, `413`, `422` |
 
 Erros seguem o padrão **ProblemDetails** (RFC 9457). Erros de validação trazem as mensagens por campo em `errors`.
 
@@ -148,6 +158,52 @@ O **backend é a fonte da verdade**; o frontend repete as mesmas regras apenas p
 - Limites de tamanho: nome 150, e-mail 254, telefone 30, área/cargo 150, resumo 2000 caracteres.
 - Campos opcionais vazios são gravados como `NULL`; todos os valores passam por *trim*.
 
+## Importação de currículo (PDF)
+
+### Como funciona
+
+1. A pessoa escolhe um PDF no topo do formulário (até 5 MB).
+2. O backend valida o arquivo: presença, tamanho, extensão `.pdf` e assinatura `%PDF-` no conteúdo. O `Content-Type` enviado pelo navegador não é usado para decidir, pois é controlado pelo cliente.
+3. O texto de todas as páginas é extraído com o PdfPig (`ContentOrderTextExtractor`, que respeita a ordem de leitura melhor que o texto bruto da página).
+4. O parser procura os dados com regras simples e determinísticas, sem IA, OCR ou serviços externos:
+   - **E-mail:** primeira ocorrência no formato `nome@dominio.tld`, devolvida como encontrada.
+   - **Telefone:** formatos brasileiros (`(41) 98765-4321`, `41 98765-4321`, `+55 41 98765-4321`, `+5541987654321`, fixos com 8 dígitos). Uma sequência só de dígitos, como `41987654321`, só é aceita se a linha tiver um rótulo como "Telefone" ou "Celular", para não confundir com CPF. O resultado é normalizado para `(DD) NNNNN-NNNN`.
+   - **Nome:** primeira linha, entre as 8 primeiras, que pareça um nome: só letras, de 2 a 6 palavras, cada uma iniciada por maiúscula (exceto partículas como "da" e "dos"), sem palavras de título de seção ou de cargo ("Currículo", "Experiência", "Desenvolvedora"…). O nome é devolvido como encontrado, sem alterar maiúsculas.
+5. Campos não identificados voltam `null`. O formulário recebe só os campos encontrados e **apenas onde estiver vazio**, para nunca apagar o que a pessoa já digitou.
+
+### Respostas
+
+| Situação | HTTP | Mensagem |
+|---|---|---|
+| Dados extraídos (mesmo que parcialmente) | `200` | Formulário preenchido com o que foi encontrado |
+| Nenhum dado encontrado | `200` (campos `null`) | "Nenhum dado identificado no PDF. Preencha o formulário manualmente." |
+| Arquivo ausente | `400` | "Selecione um arquivo PDF." |
+| Não é PDF (extensão ou conteúdo) | `400` | "O arquivo enviado não é um PDF válido." |
+| Maior que 5 MB | `413` | "O PDF deve possuir no máximo 5 MB." |
+| PDF corrompido, protegido por senha ou sem texto (escaneado) | `422` | "Não foi possível extrair informações do currículo. Você pode preencher o formulário manualmente." |
+
+O limite da requisição no endpoint é de 6 MB, um pouco acima do limite funcional de 5 MB, para que arquivos levemente maiores recebam a mensagem clara da aplicação. O frontend também verifica extensão e tamanho antes de enviar.
+
+### Testando com os arquivos de exemplo
+
+A pasta `samples/` tem arquivos fictícios (detalhes em `samples/README.md`):
+
+- `curriculo-ficticio.pdf` — preenche nome, e-mail e telefone.
+- `curriculo-escaneado.pdf` — PDF só com imagem; mostra o aviso e mantém o formulário disponível.
+- `nao-e-um-pdf.pdf` — texto renomeado; é rejeitado.
+
+### Limitações do parser
+
+A extração é heurística e não funciona perfeitamente para qualquer currículo. Quando um dado não é detectado, o campo fica vazio e editável.
+
+- **Sem OCR:** PDFs escaneados ou exportados como imagem não têm texto para extrair.
+- **Layouts em colunas** ou com caixas de texto podem mudar a ordem do texto extraído e afetar a detecção do nome.
+- **Nome:** pode não ser encontrado se estiver numa imagem, em fonte decorativa, numa única palavra, em minúsculas ou depois das 8 primeiras linhas; um título fora da lista de exclusão pode ser confundido com nome.
+- **Telefone:** números estrangeiros e formatos incomuns não são reconhecidos; sequências só de dígitos sem rótulo são ignoradas de propósito.
+- **E-mail:** pode falhar se a extração inserir espaços dentro do endereço.
+- Área/cargo e resumo profissional não são extraídos.
+- PDFs protegidos por senha de abertura não são lidos.
+
 ## Testes
 
 Na raiz do repositório:
@@ -158,8 +214,11 @@ dotnet test
 
 Os testes não precisam de SQL Server nem Docker:
 
-- `CandidateValidationTests` — regras de obrigatoriedade, formato de e-mail e tamanho.
-- `CandidatesApiTests` — sobem a API real em memória (WebApplicationFactory) e verificam cadastro, listagem, detalhes, `400` com erros por campo, `404` e e-mail duplicado. Nesses testes o banco é substituído pelo provider InMemory do EF Core; a persistência em SQL Server é validada na execução local.
+- `CandidateValidationTests` — obrigatoriedade, formato de e-mail, tamanhos e trim antes da validação.
+- `PdfFileValidatorTests` — arquivo ausente, limite de 5 MB, extensão e assinatura `%PDF-`.
+- `ResumeTextParserTests` — e-mail, formatos de telefone, números que não são telefone (CPF, CEP, datas), heurística de nome e campos ausentes.
+- `PdfTextExtractorTests` — extração do currículo fictício, PDF escaneado sem texto e PDF corrompido.
+- `CandidatesApiTests` e `ResumesApiTests` — sobem a API real em memória (WebApplicationFactory) e verificam o contrato HTTP: cadastro, listagem, detalhes, `400`, `404`, e-mail duplicado e importação com `200`, `400`, `413` e `422`. Nesses testes o banco é substituído pelo provider InMemory do EF Core; a persistência em SQL Server é validada na execução local.
 
 ## Decisões de escopo
 
