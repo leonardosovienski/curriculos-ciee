@@ -9,6 +9,14 @@ O cadastro pode ser feito de duas formas, sempre pelo **mesmo formulário** e co
 
 Depois de salvo, o candidato aparece na listagem e tem uma tela de detalhes. Falhas na leitura do PDF nunca impedem o cadastro manual.
 
+## Telas
+
+Todos os dados das imagens são fictícios.
+
+| Importação de currículo em PDF | Cadastro e listagem | Detalhes |
+|---|---|---|
+| ![Formulário preenchido a partir do PDF](docs/screenshots/1-importacao-pdf.png) | ![Cadastro salvo e listagem](docs/screenshots/2-cadastro-e-listagem.png) | ![Tela de detalhes](docs/screenshots/3-detalhes.png) |
+
 ## Stack e versões
 
 | Camada | Tecnologia | Versão |
