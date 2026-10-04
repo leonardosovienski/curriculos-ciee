@@ -64,8 +64,13 @@ React + Vite ──fetch("/api")──► proxy do Vite ──► ASP.NET Core W
 
 ### Modelos utilizados
 
+Usei IA como apoio para transformar o enunciado em um plano, implementar a solução e revisar os resultados. O Claude ajudou principalmente na construção do código e dos testes; o ChatGPT, na idealização e revisão das escolhas. Minha participação foi definir e revisar o escopo, executar a aplicação localmente, observar os resultados e levar os problemas encontrados de volta para correção. A implementação foi assistida por IA, e essa participação está detalhada abaixo.
+
 - **Claude (Anthropic)**, no claude.ai, foi o assistente principal: pesquisa e validação de versões, licenças e comportamento dos frameworks; plano técnico; implementação do código e dos testes a partir do plano aprovado; e diagnóstico dos problemas na execução local.
 - **ChatGPT (OpenAI)**, usado para revisar o plano e o M1 de forma independente. As revisões foram trazidas de volta ao Claude para comparação, e cada divergência foi decidida com evidência.
+- **Codex (OpenAI)**, usado na revisão final dos requisitos, testes locais, conferência da persistência no SQL Server e correção da interface em telas pequenas. A participação incluiu leitura do código e execução de ferramentas, não apenas sugestões em conversa.
+
+Os identificadores exatos dos modelos das sessões anteriores não foram registrados neste documento. Os nomes acima identificam as ferramentas utilizadas; não representam uma afirmação sobre versões específicas dos modelos.
 
 ### Como a IA foi usada
 
@@ -157,3 +162,15 @@ Os commits seguem a ordem real de construção (M1, depois M2, depois documenta�
 | Execução local, testes manuais e resolução de problemas de ambiente | ~3 h |
 | Documentação e revisão final | ~1 h |
 | **Total** | **~13 h** |
+
+## 10. Revisão final assistida em 04/10/2026
+
+A revisão partiu de pedidos para testar a aplicação local, comparar a entrega com o enunciado e corrigir os pontos encontrados. As verificações e a alteração abaixo foram executadas pelo Codex no ambiente local, complementando a validação manual descrita anteriormente.
+
+- Cadastro manual pelo navegador, validação de campos obrigatórios e e-mail inválido, limpeza do formulário, listagem e detalhes após recarregar a página.
+- Consulta direta ao SQL Server confirmou o registro fictício `Teste QA Codex`, criado pelo navegador, e a migration `20261003232314_InitialCreate` aplicada. Isso confirma a persistência desse fluxo; não equivale a um teste de recuperação após reiniciar o banco.
+- Execução local de `dotnet test --nologo -m:1`: 62 testes aprovados, nenhum reprovado ou ignorado. Os testes de API continuam usando o provider InMemory.
+- Execução local de `npm run build`: concluída com sucesso.
+- Correção de responsividade: o painel não podia encolher até a largura disponível e o bloco de importação mantinha o botão ao lado do texto. A correção permite encolher os painéis e empilha o bloco de importação em telas pequenas. Conferência no navegador em larguras de 320 e 390 px, sem transbordamento horizontal da página.
+
+A validação da leitura de PDF nesta revisão foi feita pelos testes automatizados, que incluem extração do arquivo fictício e erros de arquivo inválido, tamanho e leitura. O fluxo completo de upload e correção no navegador ainda não foi repetido nesta revisão. Não foi acrescentada uma estimativa de tempo desta etapa ao total anterior, pois ela não foi medida.
