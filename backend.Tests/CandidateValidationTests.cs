@@ -93,4 +93,16 @@ public class CandidateValidationTests
 
         Assert.Equal(2, errors.Count);
     }
+
+    [Fact]
+    public void Values_are_trimmed_before_validation()
+    {
+        var request = Valid();
+        request.Email = "  mariana.souza@example.com  ";
+        request.FullName = "  Mariana Exemplo Souza ";
+
+        Assert.Empty(Validate(request));
+        Assert.Equal("mariana.souza@example.com", request.Email);
+        Assert.Equal("Mariana Exemplo Souza", request.FullName);
+    }
 }
