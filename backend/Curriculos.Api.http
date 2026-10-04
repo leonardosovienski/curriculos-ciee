@@ -29,3 +29,14 @@ GET {{api}}/api/candidates/1
 
 ### Candidato inexistente -> 404
 GET {{api}}/api/candidates/999999
+
+### Importar currículo em PDF (não salva; só devolve os dados encontrados)
+POST {{api}}/api/resumes/parse
+Content-Type: multipart/form-data; boundary=CurriculoBoundary
+
+--CurriculoBoundary
+Content-Disposition: form-data; name="file"; filename="curriculo-ficticio.pdf"
+Content-Type: application/pdf
+
+< ../samples/curriculo-ficticio.pdf
+--CurriculoBoundary--

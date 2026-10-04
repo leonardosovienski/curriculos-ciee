@@ -238,6 +238,36 @@ button:disabled {
   text-decoration: underline;
 }
 
+/* Importação de PDF */
+.resume-upload {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #f7f9fb;
+  border: 1px dashed #9aa6b4;
+  border-radius: 4px;
+}
+
+.resume-upload-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.resume-upload-row button {
+  white-space: nowrap;
+}
+
+.resume-upload-title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.resume-upload .field-hint {
+  margin: 0;
+}
+
 /* Mensagens */
 .message {
   padding: 0.75rem 1rem;
@@ -248,6 +278,16 @@ button:disabled {
 .message-success {
   background: var(--success-bg);
   border-color: var(--success);
+}
+
+.message-info {
+  background: #e8f0fa;
+  border-color: var(--accent);
+}
+
+.message-warning {
+  background: #fff6e0;
+  border-color: #9a6700;
 }
 
 .message-error {

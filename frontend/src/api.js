@@ -52,10 +52,17 @@ function toApiError(status, problem) {
     fieldErrors[field] = Array.isArray(messages) ? messages[0] : String(messages)
   }
 
-  const message =
-    status === 400 && Object.keys(fieldErrors).length > 0
-      ? 'Corrija os campos destacados.'
-      : problem?.detail || (status === 0 || status >= 500 ? UNEXPECTED_ERROR : problem?.title) || UNEXPECTED_ERROR
+  let message
+  if (status === 400 && Object.keys(fieldErrors).length > 0) {
+    message = 'Corrija os campos destacados.'
+  } else if (problem?.detail) {
+    message = problem.detail
+  } else if (status === 413) {
+    // Arquivo muito acima do limite pode ser barrado pelo servidor antes da API, sem corpo JSON.
+    message = 'O PDF deve possuir no máximo 5 MB.'
+  } else {
+    message = UNEXPECTED_ERROR
+  }
 
   return new ApiError(status, message, fieldErrors)
 }
@@ -74,4 +81,11 @@ export function createCandidate(candidate) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(candidate),
   })
+}
+
+export function parseResume(file) {
+  const form = new FormData()
+  form.append('file', file)
+  // Sem Content-Type manual: o navegador define multipart/form-data com o boundary correto.
+  return request('/api/resumes/parse', { method: 'POST', body: form })
 }

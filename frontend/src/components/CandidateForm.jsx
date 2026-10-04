@@ -2,13 +2,18 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import { createCandidate } from '../api.js'
 import { EMPTY_CANDIDATE, LIMITS, normalizeCandidate, validateCandidate } from '../validation.js'
+import ResumeUpload from './ResumeUpload.jsx'
 
-// Formulário único de cadastro. O fluxo com PDF (M2) vai preencher este mesmo formulário.
+const PARSED_FIELDS = { fullName: 'nome', email: 'e-mail', phone: 'telefone' }
+
+// Formulário único de cadastro, usado tanto no fluxo manual quanto no fluxo com PDF:
+// a importação apenas preenche estes mesmos campos, e as mesmas validações valem no salvamento.
 export default function CandidateForm({ onSaved }) {
   const [values, setValues] = useState(EMPTY_CANDIDATE)
   const [errors, setErrors] = useState({})
   const [status, setStatus] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [uploadKey, setUploadKey] = useState(0)
 
   function handleChange(event) {
     const { name, value } = event.target
@@ -22,6 +27,36 @@ export default function CandidateForm({ onSaved }) {
     setValues(EMPTY_CANDIDATE)
     setErrors({})
     setStatus(null)
+    setUploadKey((key) => key + 1) // limpa também a mensagem da importação
+  }
+
+  // Preenche apenas campos vazios: a importação nunca apaga o que a pessoa já digitou.
+  function applyParsedResume(data) {
+    setStatus(null)
+    const found = Object.keys(PARSED_FIELDS).filter((field) => data[field])
+    const filled = found.filter((field) => !values[field].trim())
+
+    if (filled.length > 0) {
+      setValues((current) => {
+        const next = { ...current }
+        for (const field of filled) next[field] = data[field]
+        return next
+      })
+      setErrors((current) => {
+        const next = { ...current }
+        for (const field of filled) delete next[field]
+        return next
+      })
+    }
+
+    if (found.length === 0) {
+      return { type: 'warning', text: 'Nenhum dado identificado no PDF. Preencha o formulário manualmente.' }
+    }
+    if (filled.length === 0) {
+      return { type: 'info', text: 'Os dados encontrados no PDF não foram aplicados porque esses campos já estavam preenchidos.' }
+    }
+    const names = filled.map((field) => PARSED_FIELDS[field]).join(', ')
+    return { type: 'info', text: `Preenchemos: ${names}. Revise e complete os dados antes de salvar.` }
   }
 
   async function handleSubmit(event) {
@@ -55,6 +90,8 @@ export default function CandidateForm({ onSaved }) {
 
   return (
     <form className="candidate-form" onSubmit={handleSubmit} noValidate>
+      <ResumeUpload key={uploadKey} onParsed={applyParsedResume} disabled={saving} />
+
       <Field name="fullName" label="Nome completo" required error={errors.fullName}>
         <input
           id="field-fullName" name="fullName" type="text" autoComplete="name"
