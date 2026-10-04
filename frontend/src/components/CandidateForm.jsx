@@ -76,6 +76,7 @@ export default function CandidateForm({ onSaved }) {
       const saved = await createCandidate(candidate)
       setValues(EMPTY_CANDIDATE)
       setErrors({})
+      setUploadKey((key) => key + 1) // a mensagem da importação se referia ao cadastro anterior
       setStatus({ type: 'success', message: 'Candidato cadastrado com sucesso.', candidateId: saved.id })
       onSaved?.(saved)
     } catch (error) {
