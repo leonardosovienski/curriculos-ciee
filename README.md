@@ -212,7 +212,7 @@ Na raiz do repositório:
 dotnet test
 ```
 
-Os testes não precisam de SQL Server nem Docker:
+Os testes não precisam de SQL Server nem Docker, e rodam também no GitHub Actions (`.github/workflows/ci.yml`), junto com o build do frontend, a cada push:
 
 - `CandidateValidationTests` — obrigatoriedade, formato de e-mail, tamanhos e trim antes da validação.
 - `PdfFileValidatorTests` — arquivo ausente, limite de 5 MB, extensão e assinatura `%PDF-`.
@@ -238,3 +238,7 @@ Os testes não precisam de SQL Server nem Docker:
 | `npm ci` reclama da versão do Node | Node abaixo de 22.22 | Atualize para Node 24 LTS |
 | Mac com Apple Silicon | Imagem do SQL Server é amd64 | Habilite a emulação Rosetta no Docker Desktop |
 | Recomeçar com banco limpo | — | `docker compose down -v` e `docker compose up -d --wait` |
+
+## Desenvolvimento
+
+Planejamento, decisões técnicas, alternativas descartadas, uso de IA, dificuldades e limitações estão em [`DESENVOLVIMENTO.md`](DESENVOLVIMENTO.md).
